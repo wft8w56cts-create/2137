@@ -3,7 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Test 21:37</title>
+    <title>Test 21:37 - Prawdziwa Barka</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@magenta/music@1.23.1/dist/magentamusic.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html-midi-player@1.5.0/dist/midi-player.min.js"></script>
+
     <style>
         * {
             box-sizing: border-box;
@@ -12,7 +16,7 @@
         }
 
         body {
-            background-color: #FFD700; /* Klasyczna, mocna żółć */
+            background-color: #FFD700; /* Klasyczna żółć */
             color: #222;
             font-family: 'Courier New', Courier, monospace;
             display: flex;
@@ -21,7 +25,7 @@
             height: 100vh;
             overflow: hidden;
             user-select: none;
-            cursor: pointer; /* Kliknij, aby aktywować audio */
+            cursor: pointer;
         }
 
         #counter {
@@ -29,79 +33,40 @@
             font-weight: bold;
             text-align: center;
         }
+
+        /* Ukrywamy sam odtwarzacz, żeby nie było żadnych przycisków */
+        midi-player {
+            display: none;
+        }
     </style>
 </head>
 <body>
 
     <div id="counter">00:00:05</div>
 
-    <script>
-        let audioCtx = null;
-        let audioUnlocked = false;
+    <midi-player 
+        id="barkaPlayer" 
+        src="https://raw.githubusercontent.com/w0w_g/barka-midi/main/barka.mid">
+    </midi-player>
 
-        // Ustawiamy czas testowy: 5 sekund od teraz
+    <script>
+        let audioUnlocked = false;
+        const player = document.getElementById('barkaPlayer');
+
+        // Odliczanie testowe: 5 sekund od wejścia
         const testDurationSeconds = 5;
         const targetTime = new Date().getTime() + (testDurationSeconds * 1000);
 
-        function initAudio() {
-            if (!audioCtx) {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                audioUnlocked = true;
-                console.log("Audio odblokowane!");
-            }
-        }
-
-        // Kliknięcie w dowolne miejsce odblokowuje audio
+        // Kliknięcie w dowolne miejsce odblokowuje audio i ładuje odtwarzacz
         window.addEventListener('click', () => {
-            initAudio();
+            if (!audioUnlocked) {
+                // Krótkie odtworzenie i pauza, żeby przeglądarka "zezwoliła" na dźwięk
+                player.start();
+                setTimeout(() => player.stop(), 50);
+                audioUnlocked = true;
+                console.log("Audio gotowe do ostatecznego odpalenia!");
+            }
         });
-
-        function playBarkaMidi() {
-            if (!audioCtx) {
-                console.log("Barka miała zagrać, ale najpierw kliknij w ekran!");
-                return;
-            }
-            
-            const now = audioCtx.currentTime;
-            
-            // Nutki (częstotliwości) i czas trwania
-            const notes = [
-                [329.63, 0.0, 0.4], // E4
-                [392.00, 0.5, 0.4], // G4
-                [440.00, 1.0, 0.8], // A4
-                [392.00, 2.0, 0.4], // G4
-                [349.23, 2.5, 0.4], // F4
-                [329.63, 3.0, 0.8], // E4
-                [293.66, 4.0, 0.4], // D4
-                [349.23, 4.5, 0.4], // F4
-                [392.00, 5.0, 0.8], // G4
-                [349.23, 6.0, 0.4], // F4
-                [329.63, 6.5, 0.4], // E4
-                [293.66, 7.0, 0.8], // D4
-            ];
-
-            // Pętla odtwarzająca sekwencję przez minutę
-            for (let loop = 0; loop < 7; loop++) {
-                const loopOffset = loop * 8.5;
-                
-                notes.forEach(([freq, start, duration]) => {
-                    const osc = audioCtx.createOscillator();
-                    const gain = audioCtx.createGain();
-                    
-                    osc.type = 'triangle'; 
-                    osc.frequency.setValueAtTime(freq, now + start + loopOffset);
-                    
-                    gain.gain.setValueAtTime(0.2, now + start + loopOffset);
-                    gain.gain.exponentialRampToValueAtTime(0.001, now + start + duration + loopOffset);
-                    
-                    osc.connect(gain);
-                    gain.connect(audioCtx.destination);
-                    
-                    osc.start(now + start + loopOffset);
-                    osc.stop(now + start + duration + loopOffset);
-                });
-            }
-        }
 
         let barkaPlayed = false;
 
@@ -110,18 +75,20 @@
             const diff = targetTime - now;
             const counterElement = document.getElementById('counter');
 
-            // Jeśli odliczanie dobiegło końca
             if (diff <= 0) {
                 counterElement.innerText = "2137";
                 
                 if (!barkaPlayed) {
-                    playBarkaMidi();
-                    barkaPlayed = true;
+                    if (audioUnlocked) {
+                        player.start(); // Odpala prawdziwe MIDI
+                        barkaPlayed = true;
+                    } else {
+                        console.log("Kliknij w żółte tło, żeby odblokować muzykę!");
+                    }
                 }
                 return;
             }
 
-            // Standardowe formatowanie pozostałego czasu testowego
             const hours = Math.floor(diff / (1000 * 60 * 60));
             const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
             const seconds = Math.floor((diff % (1000 * 60)) / 1000);
@@ -130,8 +97,7 @@
             counterElement.innerText = `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
         }
 
-        // Odświeżanie co sekundę
-        const interval = setInterval(updateClock, 1000);
+        setInterval(updateClock, 1000);
         updateClock();
     </script>
 </body>
