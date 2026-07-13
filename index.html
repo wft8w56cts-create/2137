@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Test 21:37 - Prawdziwa Barka</title>
+    <title>21:37</title>
     
+    <!-- Ładujemy biblioteki do odtwarzania prawdziwych plików .mid -->
     <script src="https://cdn.jsdelivr.net/npm/@magenta/music@1.23.1/dist/magentamusic.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/html-midi-player@1.5.0/dist/midi-player.min.js"></script>
 
@@ -25,7 +26,7 @@
             height: 100vh;
             overflow: hidden;
             user-select: none;
-            cursor: pointer;
+            cursor: pointer; /* Cały ekran działa jako przycisk aktywacji audio */
         }
 
         #counter {
@@ -34,7 +35,7 @@
             text-align: center;
         }
 
-        /* Ukrywamy sam odtwarzacz, żeby nie było żadnych przycisków */
+        /* Ukrywamy odtwarzacz – zero przycisków na ekranie */
         midi-player {
             display: none;
         }
@@ -42,8 +43,9 @@
 </head>
 <body>
 
-    <div id="counter">00:00:05</div>
+    <div id="counter">00:00:00</div>
 
+    <!-- Prawdziwy plik MIDI z Barką -->
     <midi-player 
         id="barkaPlayer" 
         src="https://raw.githubusercontent.com/w0w_g/barka-midi/main/barka.mid">
@@ -52,42 +54,58 @@
     <script>
         let audioUnlocked = false;
         const player = document.getElementById('barkaPlayer');
+        let barkaPlayingThisMinute = false;
 
-        // Odliczanie testowe: 5 sekund od wejścia
-        const testDurationSeconds = 5;
-        const targetTime = new Date().getTime() + (testDurationSeconds * 1000);
-
-        // Kliknięcie w dowolne miejsce odblokowuje audio i ładuje odtwarzacz
+        // Pierwsze kliknięcie użytkownika w dowolne miejsce odblokowuje audio w przeglądarce
         window.addEventListener('click', () => {
             if (!audioUnlocked) {
-                // Krótkie odtworzenie i pauza, żeby przeglądarka "zezwoliła" na dźwięk
                 player.start();
                 setTimeout(() => player.stop(), 50);
                 audioUnlocked = true;
-                console.log("Audio gotowe do ostatecznego odpalenia!");
+                console.log("Audio zostało pomyślnie uzbrojone.");
             }
         });
 
-        let barkaPlayed = false;
-
         function updateClock() {
-            const now = new Date().getTime();
-            const diff = targetTime - now;
+            const now = new Date();
+            const currentHour = now.getHours();
+            const currentMinute = now.getMinutes();
+            const currentSecond = now.getSeconds();
+
             const counterElement = document.getElementById('counter');
 
-            if (diff <= 0) {
+            // Sprawdzamy czy jest godzina XXI:XXXVII
+            if (currentHour === 21 && currentMinute === 37) {
                 counterElement.innerText = "2137";
                 
-                if (!barkaPlayed) {
+                // Odpalamy Barkę dokładnie w pierwszej sekundzie tej minuty
+                if (!barkaPlayingThisMinute) {
                     if (audioUnlocked) {
-                        player.start(); // Odpala prawdziwe MIDI
-                        barkaPlayed = true;
+                        player.start();
+                        barkaPlayingThisMinute = true;
                     } else {
-                        console.log("Kliknij w żółte tło, żeby odblokować muzykę!");
+                        console.log("Wybbiła 21:37, ale zapomniałeś kliknąć w tło, żeby odblokować audio!");
                     }
                 }
                 return;
             }
+
+            // Jeśli minęła minuta papieska (jest 21:38), wyłączamy odtwarzacz i resetujemy flagę
+            if (barkaPlayingThisMinute && (currentHour !== 21 || currentMinute !== 37)) {
+                player.stop();
+                barkaPlayingThisMinute = false;
+            }
+
+            // Obliczanie czasu do najbliższej godziny 21:37
+            let target = new Date();
+            target.setHours(21, 37, 0, 0);
+
+            // Jeśli dzisiejsza 21:37 już minęła, odliczamy do jutra
+            if (now > target) {
+                target.setDate(target.getDate() + 1);
+            }
+
+            const diff = target - now;
 
             const hours = Math.floor(diff / (1000 * 60 * 60));
             const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
@@ -97,6 +115,7 @@
             counterElement.innerText = `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
         }
 
+        // Odświeżanie zegara co sekundę
         setInterval(updateClock, 1000);
         updateClock();
     </script>
