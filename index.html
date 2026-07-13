@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test 21:37</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: #FFD700; /* Klasyczna, mocna żółć */
+            color: #222;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            user-select: none;
+            cursor: pointer; /* Kliknij, aby aktywować audio */
+        }
+
+        #counter {
+            font-size: 12vw;
+            font-weight: bold;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="counter">00:00:05</div>
+
+    <script>
+        let audioCtx = null;
+        let audioUnlocked = false;
+
+        // Ustawiamy czas testowy: 5 sekund od teraz
+        const testDurationSeconds = 5;
+        const targetTime = new Date().getTime() + (testDurationSeconds * 1000);
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                audioUnlocked = true;
+                console.log("Audio odblokowane!");
+            }
+        }
+
+        // Kliknięcie w dowolne miejsce odblokowuje audio
+        window.addEventListener('click', () => {
+            initAudio();
+        });
+
+        function playBarkaMidi() {
+            if (!audioCtx) {
+                console.log("Barka miała zagrać, ale najpierw kliknij w ekran!");
+                return;
+            }
+            
+            const now = audioCtx.currentTime;
+            
+            // Nutki (częstotliwości) i czas trwania
+            const notes = [
+                [329.63, 0.0, 0.4], // E4
+                [392.00, 0.5, 0.4], // G4
+                [440.00, 1.0, 0.8], // A4
+                [392.00, 2.0, 0.4], // G4
+                [349.23, 2.5, 0.4], // F4
+                [329.63, 3.0, 0.8], // E4
+                [293.66, 4.0, 0.4], // D4
+                [349.23, 4.5, 0.4], // F4
+                [392.00, 5.0, 0.8], // G4
+                [349.23, 6.0, 0.4], // F4
+                [329.63, 6.5, 0.4], // E4
+                [293.66, 7.0, 0.8], // D4
+            ];
+
+            // Pętla odtwarzająca sekwencję przez minutę
+            for (let loop = 0; loop < 7; loop++) {
+                const loopOffset = loop * 8.5;
+                
+                notes.forEach(([freq, start, duration]) => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    
+                    osc.type = 'triangle'; 
+                    osc.frequency.setValueAtTime(freq, now + start + loopOffset);
+                    
+                    gain.gain.setValueAtTime(0.2, now + start + loopOffset);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + start + duration + loopOffset);
+                    
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    
+                    osc.start(now + start + loopOffset);
+                    osc.stop(now + start + duration + loopOffset);
+                });
+            }
+        }
+
+        let barkaPlayed = false;
+
+        function updateClock() {
+            const now = new Date().getTime();
+            const diff = targetTime - now;
+            const counterElement = document.getElementById('counter');
+
+            // Jeśli odliczanie dobiegło końca
+            if (diff <= 0) {
+                counterElement.innerText = "2137";
+                
+                if (!barkaPlayed) {
+                    playBarkaMidi();
+                    barkaPlayed = true;
+                }
+                return;
+            }
+
+            // Standardowe formatowanie pozostałego czasu testowego
+            const hours = Math.floor(diff / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+            const pad = (num) => String(num).padStart(2, '0');
+            counterElement.innerText = `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+        }
+
+        // Odświeżanie co sekundę
+        const interval = setInterval(updateClock, 1000);
+        updateClock();
+    </script>
+</body>
+</html>
